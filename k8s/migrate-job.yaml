@@ -1,0 +1,60 @@
+# One-shot job that runs TypeORM migrations against the Postgres pod.
+# Apply this on every release after a schema change. The image is the
+# same backend image — we just invoke a different command.
+#
+# Tracked separately from the Deployment so a rolling restart can wait
+# for migrations to complete (kubectl wait --for=condition=complete).
+#
+# Re-running is safe: TypeORM's typeorm_migrations table is idempotent.
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: receive-forms-api-migrate
+  namespace: receive-forms
+spec:
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        app: receive-forms-api
+        job: migrate
+    spec:
+      restartPolicy: OnFailure
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: migrate
+          image: REPLACE_IMAGE
+          imagePullPolicy: IfNotPresent
+          command: ["npx", "typeorm-ts-node-commonjs", "migration:run", "-d", "src/config/data-source.ts"]
+          envFrom:
+            - configMapRef:
+                name: receive-forms-api-config
+            - secretRef:
+                name: receive-forms-api-secret
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+      volumes:
+        - name: tmp
+          emptyDir: {}

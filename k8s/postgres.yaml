@@ -1,0 +1,134 @@
+# PostgreSQL for receive-forms.
+# StatefulSet keeps the volume identity stable across pod restarts.
+# A headless ClusterIP service is the conventional pairing.
+#
+# !!! SECRET HANDLING !!!
+# The Secret below ships PLACEHOLDER values only. Do NOT commit real
+# credentials. In production, provide them via one of:
+#   - SealedSecrets (bitnami-labs/sealed-secrets)
+#   - External Secrets Operator (pulling from Vault/AWS SM/GCP SM/etc.)
+#   - SOPS-encrypted manifests
+# All of those resolve to the same Secret name (receive-forms-postgres-secret)
+# but the cleartext never lands in git.
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: receive-forms-postgres-secret
+  namespace: receive-forms
+type: Opaque
+stringData:
+  POSTGRES_USER: REPLACE_ME_POSTGRES_USER
+  POSTGRES_PASSWORD: REPLACE_ME_POSTGRES_PASSWORD
+  POSTGRES_DB: REPLACE_ME_POSTGRES_DB
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: receive-forms-postgres-pvc
+  namespace: receive-forms
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: receive-forms-postgres
+  namespace: receive-forms
+  labels:
+    app: receive-forms-postgres
+spec:
+  type: ClusterIP
+  selector:
+    app: receive-forms-postgres
+  ports:
+    - protocol: TCP
+      port: 5432
+      targetPort: 5432
+      name: postgres
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: receive-forms-postgres
+  namespace: receive-forms
+  labels:
+    app: receive-forms-postgres
+spec:
+  serviceName: receive-forms-postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: receive-forms-postgres
+  template:
+    metadata:
+      labels:
+        app: receive-forms-postgres
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5432
+              name: postgres
+          envFrom:
+            - secretRef:
+                name: receive-forms-postgres-secret
+          env:
+            # Postgres stores data under PGDATA; pinning a subdir keeps the
+            # mount root clean for the volume's lost+found directory.
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            # readOnlyRootFilesystem intentionally NOT set: postgres writes
+            # WAL/pg_stat files outside PGDATA. Use AppArmor/Seccomp instead.
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          livenessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - postgres
+                - -d
+                - receive_forms
+            initialDelaySeconds: 30
+            periodSeconds: 20
+          readinessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - postgres
+                - -d
+                - receive_forms
+            initialDelaySeconds: 5
+            periodSeconds: 10
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: receive-forms-postgres-pvc

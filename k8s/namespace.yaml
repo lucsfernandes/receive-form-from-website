@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: receive-forms
+  labels:
+    app.kubernetes.io/name: receive-forms
+    app.kubernetes.io/part-of: receive-forms

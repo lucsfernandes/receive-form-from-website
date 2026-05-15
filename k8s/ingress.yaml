@@ -1,0 +1,55 @@
+# Single host serving both the SPA (/) and the API (/api).
+# Path ordering matters: more specific (/api) is listed first so Traefik
+# matches it before the catch-all root rule.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: receive-forms-ingress
+  namespace: receive-forms
+  annotations:
+    kubernetes.io/ingress.class: traefik
+    traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
+    # traefik.ingress.kubernetes.io/router.middlewares: receive-forms-redirect-www@kubernetescrd,receive-forms-redirect-to-https@kubernetescrd
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  tls:
+    - hosts:
+        - receive-forms.example.com
+        - www.receive-forms.example.com
+      secretName: receive-forms-tls
+  rules:
+    - host: receive-forms.example.com
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: receive-forms-api
+                port:
+                  number: 80
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: receive-forms-app
+                port:
+                  number: 80
+    - host: www.receive-forms.example.com
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: receive-forms-api
+                port:
+                  number: 80
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: receive-forms-app
+                port:
+                  number: 80

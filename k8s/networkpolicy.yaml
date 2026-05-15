@@ -1,0 +1,122 @@
+# NetworkPolicies for the receive-forms namespace.
+# Defaults to deny-all; then opens specific paths:
+#   - DNS egress for every pod (kube-system, UDP/TCP 53)
+#   - Traefik (in its own namespace) -> backend:3000 and frontend:8080
+#   - backend -> postgres:5432
+#
+# REQUIRES the cluster CNI to actually enforce NetworkPolicy
+# (Calico, Cilium, Weave, etc. — flannel alone does not).
+#
+# Adjust the `from.namespaceSelector` label for Traefik to match your
+# cluster: a common default is `kubernetes.io/metadata.name: traefik`.
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: receive-forms
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns-egress
+  namespace: receive-forms
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-traefik-to-backend
+  namespace: receive-forms
+spec:
+  podSelector:
+    matchLabels:
+      app: receive-forms-api
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: traefik
+      ports:
+        - protocol: TCP
+          port: 3000
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-traefik-to-frontend
+  namespace: receive-forms
+spec:
+  podSelector:
+    matchLabels:
+      app: receive-forms-app
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: traefik
+      ports:
+        - protocol: TCP
+          port: 8080
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-backend-to-postgres
+  namespace: receive-forms
+spec:
+  podSelector:
+    matchLabels:
+      app: receive-forms-postgres
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: receive-forms-api
+      ports:
+        - protocol: TCP
+          port: 5432
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-backend-egress-postgres
+  namespace: receive-forms
+spec:
+  podSelector:
+    matchLabels:
+      app: receive-forms-api
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app: receive-forms-postgres
+      ports:
+        - protocol: TCP
+          port: 5432

@@ -1,0 +1,74 @@
+# Convenience compose file for local development.
+# Runs Postgres + the API container; the SPA can be run with `npm run dev`
+# locally and will proxy /api to http://localhost:3000.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: receive_forms
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d receive_forms"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: receive-forms-api:dev
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      PORT: "3000"
+      LOG_LEVEL: info
+      CORS_ORIGIN: "http://localhost:5173"
+      # JWT signing secret for the dashboard session. Dev-only fallback below
+      # is rotated on every restart unless you pass AUTH_JWT_SECRET in.
+      AUTH_JWT_SECRET: ${AUTH_JWT_SECRET:-dev-only-jwt-secret-please-set-a-real-one-32chars-min}
+      AUTH_COOKIE_SECURE: "false"
+      AUTH_COOKIE_SAMESITE: "lax"
+      # First-admin bootstrap (only seeds if users table is empty).
+      ADMIN_BOOTSTRAP_EMAIL: ${ADMIN_BOOTSTRAP_EMAIL:-admin@local.test}
+      ADMIN_BOOTSTRAP_PASSWORD: ${ADMIN_BOOTSTRAP_PASSWORD:-changeme-dev-12chars}
+      # Optional service-to-service static token; off unless explicitly set.
+      ADMIN_STATIC_TOKEN: ${ADMIN_STATIC_TOKEN:-}
+      INGEST_HMAC_SECRET: ${INGEST_HMAC_SECRET:-}
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: receive_forms
+      # Migrations are authoritative — keep synchronize=false. Run
+      # `npm run migration:run` from the backend container/host before booting.
+      DB_SYNCHRONIZE: "false"
+      DB_LOGGING: "false"
+    ports:
+      - "3000:3000"
+
+  web:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ""
+    image: receive-forms-app:dev
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "5173:8080"
+
+volumes:
+  postgres-data:

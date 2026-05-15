@@ -1,0 +1,169 @@
+# receive-forms-api: Express + TypeORM backend.
+#
+# !!! SECRET HANDLING !!!
+# The Secret below ships PLACEHOLDER values only. Do NOT commit real
+# credentials. In production, render this through SealedSecrets, External
+# Secrets Operator, or SOPS so the cleartext never reaches git.
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: receive-forms-api-config
+  namespace: receive-forms
+data:
+  NODE_ENV: "production"
+  PORT: "3000"
+  LOG_LEVEL: "info"
+  # Comma-separated list — adjust the domain to match your frontend host.
+  CORS_ORIGIN: "https://receive-forms.example.com"
+  DB_HOST: "receive-forms-postgres"
+  DB_PORT: "5432"
+  DB_NAME: "receive_forms"
+  DB_POOL_MAX: "10"
+  # Use migrations in production; never rely on synchronize for schema changes.
+  DB_SYNCHRONIZE: "false"
+  DB_LOGGING: "false"
+  # Session cookie posture in prod: strict + secure (HTTPS only).
+  AUTH_COOKIE_SAMESITE: "strict"
+  AUTH_COOKIE_SECURE: "true"
+  AUTH_ACCESS_TTL_SECONDS: "900"
+  AUTH_REFRESH_TTL_SECONDS: "604800"
+  # First-admin bootstrap is gated by this flag in prod. Flip to "true" only
+  # for the very first apply; flip back to "false" once you have a user.
+  ADMIN_BOOTSTRAP_ALLOW_PROD: "false"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: receive-forms-api-secret
+  namespace: receive-forms
+type: Opaque
+stringData:
+  DB_USER: REPLACE_ME_DB_USER
+  DB_PASSWORD: REPLACE_ME_DB_PASSWORD
+  # 48+ random bytes, hex-encoded — signs the dashboard session JWT.
+  # Generate with: openssl rand -hex 48
+  AUTH_JWT_SECRET: REPLACE_ME_AUTH_JWT_SECRET
+  # Optional service-to-service bearer token. Leave empty unless an
+  # automation needs to hit the admin GET endpoints without a session.
+  # Generate with: openssl rand -hex 32
+  ADMIN_STATIC_TOKEN: ""
+  # Optional. When set, public POSTs must include a valid X-Signature.
+  INGEST_HMAC_SECRET: ""
+  # ---------------------------------------------------------------------------
+  # First-admin bootstrap. Set BOTH to a strong dev/admin credential on the
+  # very first deploy, then either remove them or set ADMIN_BOOTSTRAP_ALLOW_PROD
+  # back to "false" so subsequent rollouts don't re-seed.
+  # ---------------------------------------------------------------------------
+  ADMIN_BOOTSTRAP_EMAIL: ""
+  ADMIN_BOOTSTRAP_PASSWORD: ""
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: receive-forms-api
+  namespace: receive-forms
+  labels:
+    app: receive-forms-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: receive-forms-api
+  template:
+    metadata:
+      labels:
+        app: receive-forms-api
+    spec:
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: backend
+          image: REPLACE_IMAGE
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3000
+          envFrom:
+            - configMapRef:
+                name: receive-forms-api-config
+            - secretRef:
+                name: receive-forms-api-secret
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          # Writable /tmp emptyDir because readOnlyRootFilesystem is on.
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "250m"
+              memory: "256Mi"
+          lifecycle:
+            preStop:
+              exec:
+                # Give the load balancer a few seconds to drop us from the
+                # endpoint pool before we start refusing connections.
+                command: ["sh", "-c", "sleep 5"]
+          livenessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: 3000
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /api/v1/ready
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+      volumes:
+        - name: tmp
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: receive-forms-api
+  namespace: receive-forms
+spec:
+  type: ClusterIP
+  selector:
+    app: receive-forms-api
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 3000
+      name: http
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: receive-forms-api-hpa
+  namespace: receive-forms
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: receive-forms-api
+  minReplicas: 1
+  maxReplicas: 3
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 60
