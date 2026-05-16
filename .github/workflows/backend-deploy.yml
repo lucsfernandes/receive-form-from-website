@@ -63,7 +63,7 @@ jobs:
             ADMIN_BOOTSTRAP_PASSWORD: ${{ secrets.ADMIN_BOOTSTRAP_PASSWORD }}  
 
         run: |
-          kubectl create secret generic receive-forms-secret -n receive-forms \
+          kubectl create secret generic receive-forms-api-secret -n receive-forms \
             --from-literal=AUTH_JWT_SECRET="${AUTH_JWT_SECRET}" \
             --from-literal=DB_HOST="${DB_HOST}" \
             --from-literal=DB_PORT="${DB_PORT}" \
