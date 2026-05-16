@@ -54,14 +54,14 @@ jobs:
       - name: Replace image placeholder
         run: |
           IMAGE_NAME=${{ secrets.DOCKERHUB_USER }}/receive-forms-app:${{ github.sha }}
-          sed -i "s|REPLACE_IMAGE|${IMAGE_NAME}|g" k8s/deployment.yaml
+          sed -i "s|REPLACE_IMAGE|${IMAGE_NAME}|g" frontend/k8s/deployment.yaml
 
       - name: kubectl apply
         run: |
-          kubectl apply -f k8s/configmap.yaml
-          kubectl apply -f k8s/deployment.yaml
-          kubectl apply -f k8s/service.yaml
-          kubectl apply -f k8s/hpa.yaml || true
-          kubectl apply -f k8s/receive-forms-middlewares.yaml
-          kubectl apply -f k8s/ingress.yaml
-          kubectl apply -f k8s/ingress-route.yaml
+          kubectl apply -f frontend/k8s/configmap.yaml
+          kubectl apply -f frontend/k8s/deployment.yaml
+          kubectl apply -f frontend/k8s/service.yaml
+          kubectl apply -f frontend/k8s/hpa.yaml || true
+          kubectl apply -f frontend/k8s/receive-forms-middlewares.yaml
+          kubectl apply -f frontend/k8s/ingress.yaml
+          kubectl apply -f frontend/k8s/ingress-route.yaml
