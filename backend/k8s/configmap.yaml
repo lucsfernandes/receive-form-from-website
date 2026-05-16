@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: receive-forms-api-config
+  namespace: receive-forms
+data:
+  NODE_ENV: "production"
+  PORT: "3000"
+  LOG_LEVEL: "info"
+  CORS_ORIGIN: "https://api.form.arcobatrox.com.br"
+  DB_HOST: "receive-forms-postgres"
+  DB_PORT: "5432"
+  DB_NAME: "receive_forms"
+  DB_POOL_MAX: "10"
+  DB_SYNCHRONIZE: "false"
+  DB_LOGGING: "false"
+  AUTH_COOKIE_SAMESITE: "strict"
+  AUTH_COOKIE_SECURE: "true"
+  AUTH_ACCESS_TTL_SECONDS: "900"
+  AUTH_REFRESH_TTL_SECONDS: "604800"
+  ADMIN_BOOTSTRAP_ALLOW_PROD: "false"

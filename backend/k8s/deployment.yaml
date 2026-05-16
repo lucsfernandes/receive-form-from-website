@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: receive-forms-api
+  namespace: receive-forms
+  labels:
+    app: receive-forms-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: receive-forms-api
+  template:
+    metadata:
+      labels:
+        app: receive-forms-api
+    spec:
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: receive-forms-api
+          image: REPLACE_IMAGE
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3000
+          envFrom:
+            - configMapRef:
+                name: receive-forms-api-config
+            - secretRef:
+                name: receive-forms-api-secret
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          # Writable /tmp emptyDir because readOnlyRootFilesystem is on.
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "250m"
+              memory: "256Mi"
+          lifecycle:
+            preStop:
+              exec:
+                # Give the load balancer a few seconds to drop us from the
+                # endpoint pool before we start refusing connections.
+                command: ["sh", "-c", "sleep 5"]
+          livenessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: 3000
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /api/v1/ready
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+      volumes:
+        - name: tmp
+          emptyDir: {}

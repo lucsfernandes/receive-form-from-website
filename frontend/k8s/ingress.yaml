@@ -1,0 +1,38 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: receive-forms-app-ingress
+  namespace: receive-forms
+  annotations:
+    kubernetes.io/ingress.class: traefik
+    traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
+    # traefik.ingress.kubernetes.io/router.middlewares: receive-forms-app-redirect-www@kubernetescrd,receive-forms-api-redirect-to-https@kubernetescrd
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  tls:
+    - hosts:
+        - app.form.arcobatrox.com.br
+        - www.app.form.arcobatrox.com.br
+      secretName: receive-forms-tls
+  rules:
+    - host: app.form.arcobatrox.com.br
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: receive-forms-app
+                port:
+                  number: 80
+    - host: www.app.form.arcobatrox.com.br
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: receive-forms-app
+                port:
+                  number: 80

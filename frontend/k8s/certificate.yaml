@@ -1,0 +1,16 @@
+# Optional: cert-manager Certificate resource.
+# Some setups prefer the annotation-driven flow on the Ingress alone — keep
+# whichever fits your operational model and remove the other.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: receive-forms-tls
+  namespace: receive-forms
+spec:
+  secretName: receive-forms-tls
+  issuerRef:
+    name: letsencrypt
+    kind: ClusterIssuer
+  dnsNames:
+    - app.form.arcobatrox.com.br
+    - www.app.form.arcobatrox.com.br

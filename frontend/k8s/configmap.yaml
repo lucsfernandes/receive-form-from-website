@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: receive-forms-app-config
+  namespace: receive-forms
+data:
+  VITE_API_BASE_URL="https://api.form.arcobatrox.com.br/api/v1"
