@@ -1,9 +1,9 @@
-name: CI/CD Deploy to VPS with K8s
+name: CI/CD Frontend Deploy to VPS with K8s
 
 on:
   push:
    branches:
-    - main
+    - master
 
 jobs:
   deploy:
