@@ -3,6 +3,9 @@ kind: Service
 metadata:
   name: receive-forms-api
   namespace: receive-forms
+  labels:
+    app.kubernetes.io/name: receive-forms-api
+    app.kubernetes.io/part-of: arcobatrox
 spec:
   type: ClusterIP
   selector:
@@ -12,7 +15,3 @@ spec:
       port: 80
       targetPort: 3000
       name: http
-    - protocol: TCP
-      port: 443
-      targetPort: 3000
-      name: https

@@ -15,7 +15,7 @@ data:
   PORT: "3000"
   LOG_LEVEL: "info"
   # Comma-separated list — adjust the domain to match your frontend host.
-  CORS_ORIGIN: "https://receive-forms.example.com"
+  CORS_ORIGIN: "https://api.form.arcobatrox.com.br"
   DB_HOST: "receive-forms-postgres"
   DB_PORT: "5432"
   DB_NAME: "receive_forms"
@@ -39,11 +39,11 @@ metadata:
   namespace: receive-forms
 type: Opaque
 stringData:
-  DB_USER: REPLACE_ME_DB_USER
-  DB_PASSWORD: REPLACE_ME_DB_PASSWORD
+  DB_USER: 'form_admin'
+  DB_PASSWORD: '8HDJOavtD1Ejc9Pe'
   # 48+ random bytes, hex-encoded — signs the dashboard session JWT.
   # Generate with: openssl rand -hex 48
-  AUTH_JWT_SECRET: REPLACE_ME_AUTH_JWT_SECRET
+  AUTH_JWT_SECRET: "4c0572d6fff094b54b7a90598331fa83fff1ca8a8cf5700051a7edcbbc2826fb9696d1328d49a1b97a287e6f8ec0e6e4"
   # Optional service-to-service bearer token. Leave empty unless an
   # automation needs to hit the admin GET endpoints without a session.
   # Generate with: openssl rand -hex 32
@@ -55,8 +55,8 @@ stringData:
   # very first deploy, then either remove them or set ADMIN_BOOTSTRAP_ALLOW_PROD
   # back to "false" so subsequent rollouts don't re-seed.
   # ---------------------------------------------------------------------------
-  ADMIN_BOOTSTRAP_EMAIL: ""
-  ADMIN_BOOTSTRAP_PASSWORD: ""
+  ADMIN_BOOTSTRAP_EMAIL: "lbandeira845@gmail.com"
+  ADMIN_BOOTSTRAP_PASSWORD: "lucas193"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -84,7 +84,7 @@ spec:
         seccompProfile:
           type: RuntimeDefault
       containers:
-        - name: backend
+        - name: receive-forms-api
           image: REPLACE_IMAGE
           imagePullPolicy: IfNotPresent
           ports:
@@ -147,6 +147,10 @@ spec:
       port: 80
       targetPort: 3000
       name: http
+    - protocol: TCP
+      port: 443
+      targetPort: 3000
+      name: https
 ---
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
@@ -167,3 +171,118 @@ spec:
         target:
           type: Utilization
           averageUtilization: 60
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: receive-forms-api-ingress
+  namespace: receive-forms
+  annotations:
+    kubernetes.io/ingress.class: traefik
+    traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
+    # traefik.ingress.kubernetes.io/router.middlewares: receive-forms-api-redirect-www@kubernetescrd,receive-forms-api-redirect-to-https@kubernetescrd
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  tls:
+    - hosts:
+        - api.form.arcobatrox.com.br
+        - www.api.form.arcobatrox.com.br
+      secretName: receive-forms-tls
+  rules:
+    - host: api.form.arcobatrox.com.br
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: receive-forms-api
+                port:
+                  number: 80
+    - host: www.api.form.arcobatrox.com.br
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: receive-forms-api
+                port:
+                  number: 80
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: receive-forms-api-ingress
+  namespace: receive-forms
+spec:
+  entryPoints:
+    - web
+    - websecure
+  routes:
+    - match: Host(`api.form.arcobatrox.com.br`) && PathPrefix(`/api/v1`)
+      kind: Rule
+      services:
+        - name: receive-forms-api
+          port: 80
+      # middlewares:
+      #   - name: receive-forms-api-redirect-www
+      #     namespace: receive-forms
+      #   - name: receive-forms-api-redirect-to-https
+      #     namespace: receive-forms
+    - match: Host(`www.api.form.arcobatrox.com.br`) && PathPrefix(`/api/v1`)
+      kind: Rule
+      services:
+        - name: receive-forms-api
+          port: 80
+      # middlewares:
+      #   - name: receive-forms-api-redirect-to-https
+      #     namespace: receive-forms
+  tls:
+    secretName: receive-forms-tls
+    certResolver: le
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: receive-forms-api-redirect-to-https
+  namespace: receive-forms
+spec:
+  redirectScheme:
+    scheme: https
+    permanent: true
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: receive-forms-api-redirect-www
+  namespace: receive-forms
+spec:
+  redirectRegex:
+    regex: ^https?://www\.(.*)
+    replacement: https://${1}
+    permanent: true
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: receive-forms-api-cors-headers
+  namespace: receive-forms
+spec:
+  headers:
+    accessControlAllowMethods:
+      - GET
+      - POST
+      - PUT
+      - DELETE
+      - OPTIONS
+    accessControlAllowOriginList:
+      - "https://api.form.arcobatrox.com.br"
+      - "https://www.api.form.arcobatrox.com.br"
+    accessControlAllowHeaders:
+      - Content-Type
+      - Authorization
+      - X-Requested-With
+    accessControlAllowCredentials: true
+

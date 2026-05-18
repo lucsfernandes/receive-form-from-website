@@ -60,7 +60,8 @@ jobs:
             AUTH_ACCESS_TTL_SECONDS: ${{ secrets.AUTH_ACCESS_TTL_SECONDS }}
             AUTH_REFRESH_TTL_SECONDS: ${{ secrets.AUTH_REFRESH_TTL_SECONDS }}
             ADMIN_BOOTSTRAP_EMAIL: ${{ secrets.ADMIN_BOOTSTRAP_EMAIL }}
-            ADMIN_BOOTSTRAP_PASSWORD: ${{ secrets.ADMIN_BOOTSTRAP_PASSWORD }}  
+            ADMIN_BOOTSTRAP_PASSWORD: ${{ secrets.ADMIN_BOOTSTRAP_PASSWORD }}
+            ADMIN_BOOTSTRAP_ALLOW_PROD: ${{ secrets.ADMIN_BOOTSTRAP_ALLOW_PROD }}
 
         run: |
           kubectl create secret generic receive-forms-api-secret -n receive-forms \
@@ -79,6 +80,7 @@ jobs:
             --from-literal=AUTH_REFRESH_TTL_SECONDS="${AUTH_REFRESH_TTL_SECONDS}" \
             --from-literal=ADMIN_BOOTSTRAP_EMAIL="${ADMIN_BOOTSTRAP_EMAIL}" \
             --from-literal=ADMIN_BOOTSTRAP_PASSWORD="${ADMIN_BOOTSTRAP_PASSWORD}" \
+            --from-literal=ADMIN_BOOTSTRAP_ALLOW_PROD="${ADMIN_BOOTSTRAP_ALLOW_PROD}" \
             --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Replace image placeholder
@@ -88,10 +90,4 @@ jobs:
 
       - name: kubectl apply
         run: |
-          kubectl apply -f backend/k8s/configmap.yaml
-          kubectl apply -f backend/k8s/deployment.yaml
-          kubectl apply -f backend/k8s/service.yaml
-          kubectl apply -f backend/k8s/hpa.yaml || true
-          kubectl apply -f backend/k8s/receive-forms-middlewares.yaml
-          kubectl apply -f backend/k8s/ingress.yaml
-          kubectl apply -f backend/k8s/ingress-route.yaml
+          kubectl apply -k backend/k8s

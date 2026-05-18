@@ -3,12 +3,15 @@ kind: ConfigMap
 metadata:
   name: receive-forms-api-config
   namespace: receive-forms
+  labels:
+    app.kubernetes.io/name: receive-forms-api
+    app.kubernetes.io/part-of: arcobatrox
 data:
   NODE_ENV: "production"
   PORT: "3000"
   LOG_LEVEL: "info"
   CORS_ORIGIN: "https://api.form.arcobatrox.com.br"
-  DB_HOST: "receive-forms-postgres"
+  DB_HOST: "postgres-rw.databases.svc.cluster.local"
   DB_PORT: "5432"
   DB_NAME: "receive_forms"
   DB_POOL_MAX: "10"

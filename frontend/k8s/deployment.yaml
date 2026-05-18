@@ -4,17 +4,28 @@ metadata:
   name: receive-forms-app
   namespace: receive-forms
   labels:
-    app: receive-forms-app
+    app.kubernetes.io/name: receive-forms-app
+    app.kubernetes.io/component: app
+    app.kubernetes.io/part-of: arcobatrox
 spec:
   replicas: 1
+  revisionHistoryLimit: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
   selector:
     matchLabels:
-      app: receive-forms-app
+      app.kubernetes.io/name: receive-forms-app
   template:
     metadata:
       labels:
-        app: receive-forms-app
+        app.kubernetes.io/name: receive-forms-app
+        app.kubernetes.io/component: app
+        app.kubernetes.io/part-of: arcobatrox
     spec:
+      terminationGracePeriodSeconds: 30
       securityContext:
         runAsNonRoot: true
         # 101 = "nginx" user shipped by nginx:alpine. The Dockerfile already
@@ -29,7 +40,18 @@ spec:
           image: REPLACE_IMAGE
           imagePullPolicy: IfNotPresent
           ports:
-            - containerPort: 8080
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          # NOTE: VITE_API_BASE_URL is consumed at BUILD time by Vite
+          # (`import.meta.env`), so injecting it at runtime via envFrom has no
+          # effect on the served bundle. The configmap is kept for visibility
+          # only; the actual API base URL is baked into the image via the
+          # Dockerfile ARG. Update the CI build to pass --build-arg
+          # VITE_API_BASE_URL=https://api.form.arcobatrox.com.br when needed.
+          envFrom:
+            - configMapRef:
+                name: receive-forms-app-config
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
@@ -52,18 +74,28 @@ spec:
             limits:
               cpu: "100m"
               memory: "128Mi"
+          lifecycle:
+            preStop:
+              # Give Traefik a few seconds to drop us from the endpoint pool
+              # before nginx starts refusing connections during rollouts.
+              exec:
+                command: ["sh", "-c", "sleep 5"]
           livenessProbe:
             httpGet:
               path: /healthz
               port: 8080
             initialDelaySeconds: 5
             periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 3
           readinessProbe:
             httpGet:
               path: /healthz
               port: 8080
             initialDelaySeconds: 2
             periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
       volumes:
         - name: nginx-cache
           emptyDir: {}

@@ -58,10 +58,4 @@ jobs:
 
       - name: kubectl apply
         run: |
-          kubectl apply -f frontend/k8s/configmap.yaml
-          kubectl apply -f frontend/k8s/deployment.yaml
-          kubectl apply -f frontend/k8s/service.yaml
-          kubectl apply -f frontend/k8s/hpa.yaml || true
-          kubectl apply -f frontend/k8s/receive-forms-middlewares.yaml
-          kubectl apply -f frontend/k8s/ingress.yaml
-          kubectl apply -f frontend/k8s/ingress-route.yaml
+          kubectl apply -k frontend/k8s
