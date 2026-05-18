@@ -9,9 +9,9 @@ metadata:
 spec:
   type: ClusterIP
   selector:
-    app: receive-forms-api
+    app.kubernetes.io/name: receive-forms-api
   ports:
     - protocol: TCP
       port: 80
-      targetPort: 3000
+      targetPort: http
       name: http

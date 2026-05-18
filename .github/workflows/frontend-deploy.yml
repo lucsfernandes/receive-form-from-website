@@ -28,7 +28,7 @@ jobs:
       - name: Build and push Docker image
         run: |
           IMAGE_NAME=${{ secrets.DOCKERHUB_USER }}/receive-forms-app:${{ github.sha }}
-          docker build -t $IMAGE_NAME frontend/
+          docker build --build-arg VITE_API_BASE_URL="${{ secrets.VITE_API_BASE_URL }}" -t $IMAGE_NAME frontend/
           docker push $IMAGE_NAME
 
       - name: Prepare kubeconfig
@@ -41,15 +41,6 @@ jobs:
       - name: Criar namespace se não existir
         run: |
           kubectl get namespace receive-forms || kubectl create namespace receive-forms
-
-      - name: Criar/atualizar secret no cluster
-        env:
-            VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }} 
-
-        run: |
-          kubectl create secret generic receive-forms-secret -n receive-forms \
-            --from-literal=VITE_API_BASE_URL="${VITE_API_BASE_URL}" \
-            --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Replace image placeholder
         run: |
