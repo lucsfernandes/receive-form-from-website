@@ -11,12 +11,12 @@ spec:
     - web
     - websecure
   routes:
-    - match: Host(`api.form.arcobatrox.com.br`) && PathPrefix(`/api/v1`)
+    - match: Host(`api.form.arcobatrox.com.br`)
       kind: Rule
       services:
         - name: receive-forms-api
           port: 80
-    - match: Host(`www.api.form.arcobatrox.com.br`) && PathPrefix(`/api/v1`)
+    - match: Host(`www.api.form.arcobatrox.com.br`)
       kind: Rule
       services:
         - name: receive-forms-api
