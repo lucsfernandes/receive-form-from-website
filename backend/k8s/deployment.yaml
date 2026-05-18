@@ -53,12 +53,6 @@ spec:
                 name: receive-forms-api-config
             - secretRef:
                 name: receive-forms-api-secret
-          securityContext:
-            allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: true
-            capabilities:
-              drop:
-                - ALL
           # Writable /tmp emptyDir because readOnlyRootFilesystem is on.
           volumeMounts:
             - name: tmp
