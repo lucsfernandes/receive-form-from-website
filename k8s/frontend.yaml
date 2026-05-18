@@ -88,6 +88,10 @@ spec:
       port: 80
       targetPort: 8080
       name: http
+    - protocol: TCP
+      port: 443
+      targetPort: 3000
+      name: https
 ---
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
@@ -108,3 +112,118 @@ spec:
         target:
           type: Utilization
           averageUtilization: 70
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: receive-forms-app-ingress
+  namespace: receive-forms
+  annotations:
+    kubernetes.io/ingress.class: traefik
+    traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
+    # traefik.ingress.kubernetes.io/router.middlewares: receive-forms-app-redirect-www@kubernetescrd,receive-forms-api-redirect-to-https@kubernetescrd
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  tls:
+    - hosts:
+        - app.form.arcobatrox.com.br
+        - www.app.form.arcobatrox.com.br
+      secretName: receive-forms-tls
+  rules:
+    - host: app.form.arcobatrox.com.br
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: receive-forms-app
+                port:
+                  number: 80
+    - host: www.app.form.arcobatrox.com.br
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: receive-forms-app
+                port:
+                  number: 80
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: receive-forms-app-ingress
+  namespace: receive-forms
+spec:
+  entryPoints:
+    - web
+    - websecure
+  routes:
+    - match: Host(`app.form.arcobatrox.com.br`) && PathPrefix(`/`)
+      kind: Rule
+      services:
+        - name: receive-forms-app
+          port: 80
+      # middlewares:
+      #   - name: receive-forms-app-redirect-www
+      #     namespace: receive-forms
+      #   - name: receive-forms-app-redirect-to-https
+      #     namespace: receive-forms
+    - match: Host(`www.app.form.arcobatrox.com.br`) && PathPrefix(`/`)
+      kind: Rule
+      services:
+        - name: receive-forms-app
+          port: 80
+      # middlewares:
+      #   - name: receive-forms-app-redirect-to-https
+      #     namespace: receive-forms
+  tls:
+    secretName: receive-forms-tls
+    certResolver: le
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: receive-forms-app-redirect-to-https
+  namespace: receive-forms
+spec:
+  redirectScheme:
+    scheme: https
+    permanent: true
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: receive-forms-app-redirect-www
+  namespace: receive-forms
+spec:
+  redirectRegex:
+    regex: ^https?://www\.(.*)
+    replacement: https://${1}
+    permanent: true
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: receive-forms-app-cors-headers
+  namespace: receive-forms
+spec:
+  headers:
+    accessControlAllowMethods:
+      - GET
+      - POST
+      - PUT
+      - DELETE
+      - OPTIONS
+    accessControlAllowOriginList:
+      - "https://app.form.arcobatrox.com.br"
+      - "https://www.app.form.arcobatrox.com.br"
+    accessControlAllowHeaders:
+      - Content-Type
+      - Authorization
+      - X-Requested-With
+    accessControlAllowCredentials: true
+

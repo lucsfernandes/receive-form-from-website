@@ -3,6 +3,9 @@ kind: IngressRoute
 metadata:
   name: receive-forms-api-ingress
   namespace: receive-forms
+  labels:
+    app.kubernetes.io/name: receive-forms-api
+    app.kubernetes.io/part-of: arcobatrox
 spec:
   entryPoints:
     - web
@@ -13,19 +16,10 @@ spec:
       services:
         - name: receive-forms-api
           port: 80
-      # middlewares:
-      #   - name: receive-forms-api-redirect-www
-      #     namespace: receive-forms
-      #   - name: receive-forms-api-redirect-to-https
-      #     namespace: receive-forms
     - match: Host(`www.api.form.arcobatrox.com.br`) && PathPrefix(`/api/v1`)
       kind: Rule
       services:
         - name: receive-forms-api
           port: 80
-      # middlewares:
-      #   - name: receive-forms-api-redirect-to-https
-      #     namespace: receive-forms
   tls:
     secretName: receive-forms-tls
-    certResolver: le

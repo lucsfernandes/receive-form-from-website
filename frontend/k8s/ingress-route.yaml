@@ -3,9 +3,14 @@ kind: IngressRoute
 metadata:
   name: receive-forms-app-ingress
   namespace: receive-forms
+  labels:
+    app.kubernetes.io/name: receive-forms-app
+    app.kubernetes.io/part-of: arcobatrox
 spec:
+  # Only handle HTTPS here. The `web` (port 80) entrypoint should be wired
+  # globally to redirect to `websecure` in your Traefik static config —
+  # serving plain HTTP for the app would break HSTS + secure cookies.
   entryPoints:
-    - web
     - websecure
   routes:
     - match: Host(`app.form.arcobatrox.com.br`) && PathPrefix(`/`)
@@ -13,19 +18,10 @@ spec:
       services:
         - name: receive-forms-app
           port: 80
-      # middlewares:
-      #   - name: receive-forms-app-redirect-www
-      #     namespace: receive-forms
-      #   - name: receive-forms-app-redirect-to-https
-      #     namespace: receive-forms
     - match: Host(`www.app.form.arcobatrox.com.br`) && PathPrefix(`/`)
       kind: Rule
       services:
         - name: receive-forms-app
           port: 80
-      # middlewares:
-      #   - name: receive-forms-app-redirect-to-https
-      #     namespace: receive-forms
   tls:
-    secretName: receive-forms-tls
-    certResolver: le
+    secretName: receive-forms-app-tls

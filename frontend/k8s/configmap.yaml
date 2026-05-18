@@ -3,5 +3,15 @@ kind: ConfigMap
 metadata:
   name: receive-forms-app-config
   namespace: receive-forms
+  labels:
+    app.kubernetes.io/name: receive-forms-app
+    app.kubernetes.io/part-of: arcobatrox
 data:
-  VITE_API_BASE_URL="https://api.form.arcobatrox.com.br/api/v1"
+  # NOTE: This value is here for documentation only. Vite reads
+  # VITE_API_BASE_URL at BUILD time via `import.meta.env`, so a runtime
+  # ConfigMap cannot change what the SPA bundle calls. The real value is
+  # baked into the image via the Dockerfile ARG (passed at CI build time).
+  #
+  # The SPA runs in the user's browser — it CANNOT reach
+  # *.svc.cluster.local addresses. Use the public API URL.
+  VITE_API_BASE_URL: "https://api.form.arcobatrox.com.br/api/v1"

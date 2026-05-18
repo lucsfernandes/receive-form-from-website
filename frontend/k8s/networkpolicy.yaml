@@ -1,0 +1,43 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: receive-forms-app
+  namespace: receive-forms
+  labels:
+    app.kubernetes.io/name: receive-forms-app
+    app.kubernetes.io/part-of: arcobatrox
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: receive-forms-app
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Traefik proxies straight to the pod's containerPort (8080), not to
+    # the Service port. Make sure the namespace where Traefik runs is
+    # labeled `kubernetes.io/metadata.name: traefik` (this label is set
+    # automatically since k8s 1.22, but double-check on your cluster).
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: traefik
+      ports:
+        - port: 8080
+          protocol: TCP
+  egress:
+    # Cluster DNS — required for any name resolution at all.
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+    # The SPA itself does not talk to the backend from the pod — the user's
+    # browser does. We keep no Postgres or backend egress on purpose; nginx
+    # only serves static assets. If you ever add an nginx proxy_pass to the
+    # API, add an egress rule for the receive-forms-api pod here.

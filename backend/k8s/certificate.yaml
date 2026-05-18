@@ -1,16 +1,23 @@
-# Optional: cert-manager Certificate resource.
-# Some setups prefer the annotation-driven flow on the Ingress alone — keep
-# whichever fits your operational model and remove the other.
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: receive-forms-tls
+  name: receive-forms-api
   namespace: receive-forms
+  labels:
+    app.kubernetes.io/part-of: arcobatrox
 spec:
   secretName: receive-forms-tls
+  duration: 2160h
+  renewBefore: 360h
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+    rotationPolicy: Always
   issuerRef:
-    name: letsencrypt
+    name: letsencrypt-prod
     kind: ClusterIssuer
+    group: cert-manager.io
+  commonName: api.form.arcobatrox.com.br
   dnsNames:
     - api.form.arcobatrox.com.br
     - www.api.form.arcobatrox.com.br

@@ -12,5 +12,5 @@ spec:
     name: letsencrypt
     kind: ClusterIssuer
   dnsNames:
-    - receive-forms.example.com
-    - www.receive-forms.example.com
+    - api.form.arcobatrox.com.br
+    - www.api.form.arcobatrox.com.br
