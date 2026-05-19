@@ -189,6 +189,7 @@ function normalizeRow(row: ContactMessage): ContactMessage {
     id: row.id,
     name: clamp(row.name),
     email: clamp(row.email),
+    subject: clamp(row.subject),
     message: clamp(row.message),
     createdAt: row.createdAt,
   };

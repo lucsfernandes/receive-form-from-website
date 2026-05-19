@@ -180,6 +180,7 @@ export const env = {
     password: required('DB_PASSWORD', 'postgres'),
     database: required('DB_NAME', 'receive_forms'),
     synchronize: toBool(process.env.DB_SYNCHRONIZE, false),
+    ssl: toBool(process.env.DB_SSL, false),
     logging: toBool(process.env.DB_LOGGING, false),
   },
 
