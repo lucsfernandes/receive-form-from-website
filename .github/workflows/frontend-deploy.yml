@@ -28,7 +28,7 @@ jobs:
       - name: Build and push Docker image
         run: |
           IMAGE_NAME=${{ secrets.DOCKERHUB_USER }}/receive-forms-app:${{ github.sha }}
-          docker build --build-arg VITE_API_BASE_URL="${{ secrets.VITE_API_BASE_URL }}" -t $IMAGE_NAME frontend/
+          docker build -t $IMAGE_NAME frontend/
           docker push $IMAGE_NAME
 
       - name: Prepare kubeconfig
