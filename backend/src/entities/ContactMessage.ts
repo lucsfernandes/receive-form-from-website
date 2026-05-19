@@ -22,6 +22,9 @@ export class ContactMessage {
   email!: string;
 
   @Column({ type: 'text' })
+  subject!: string;
+
+  @Column({ type: 'text' })
   message!: string;
 
   @Index()
