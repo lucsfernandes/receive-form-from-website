@@ -14,6 +14,7 @@ function serialize(m: ContactMessage) {
     id: m.id,
     name: m.name,
     email: m.email,
+    subject: m.subject,
     message: m.message,
     createdAt: m.createdAt,
   };
