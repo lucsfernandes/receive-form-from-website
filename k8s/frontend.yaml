@@ -134,6 +134,13 @@ spec:
     - host: app.form.arcobatrox.com.br
       http:
         paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: receive-forms-api
+                port:
+                  number: 80
           - path: /
             pathType: Prefix
             backend:
@@ -144,6 +151,13 @@ spec:
     - host: www.app.form.arcobatrox.com.br
       http:
         paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: receive-forms-api
+                port:
+                  number: 80
           - path: /
             pathType: Prefix
             backend:
@@ -162,8 +176,23 @@ spec:
     - web
     - websecure
   routes:
+    # Explicit priorities so /api always beats the SPA catch-all regardless
+    # of Traefik's rule-length heuristic.
+    - match: Host(`app.form.arcobatrox.com.br`) && PathPrefix(`/api`)
+      kind: Rule
+      priority: 100
+      services:
+        - name: receive-forms-api
+          port: 80
+    - match: Host(`www.app.form.arcobatrox.com.br`) && PathPrefix(`/api`)
+      kind: Rule
+      priority: 100
+      services:
+        - name: receive-forms-api
+          port: 80
     - match: Host(`app.form.arcobatrox.com.br`) && PathPrefix(`/`)
       kind: Rule
+      priority: 10
       services:
         - name: receive-forms-app
           port: 80
@@ -174,6 +203,7 @@ spec:
       #     namespace: receive-forms
     - match: Host(`www.app.form.arcobatrox.com.br`) && PathPrefix(`/`)
       kind: Rule
+      priority: 10
       services:
         - name: receive-forms-app
           port: 80
