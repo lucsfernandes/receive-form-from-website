@@ -28,7 +28,7 @@ export default function MessageDetailPage() {
           <header className="space-y-4 border-b border-slate-200 p-6 sm:p-8">
             <div className="flex flex-wrap items-baseline justify-between gap-3">
               <h1 className="text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
-                {state.data.name}
+                {state.data.subject}
               </h1>
               <time
                 dateTime={state.data.createdAt}
@@ -45,6 +45,7 @@ export default function MessageDetailPage() {
             </div>
             <div className="flex items-center gap-2 text-sm">
               <span className="text-slate-500">De:</span>
+              <span className="text-slate-500">{state.data.name} </span>
               <a
                 href={`mailto:${state.data.email}`}
                 className="rounded-md font-medium text-indigo-600 underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40"

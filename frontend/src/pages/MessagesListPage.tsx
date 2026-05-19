@@ -147,12 +147,8 @@ function MessageTable({ rows }: { rows: ContactMessage[] }) {
           >
             <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
               <div className="flex min-w-0 items-baseline gap-2">
-                <span className="truncate text-sm font-semibold text-slate-900">
-                  {m.name}
-                </span>
-                <span className="truncate text-xs text-slate-500">
-                  {m.email}
-                </span>
+                <span className="truncate text-sm font-semibold text-slate-900">{m.name}</span>
+                <span className="truncate text-xs text-slate-500">{m.email}</span>
               </div>
               <time
                 dateTime={m.createdAt}
@@ -162,9 +158,12 @@ function MessageTable({ rows }: { rows: ContactMessage[] }) {
                 {relativeTime(m.createdAt)}
               </time>
             </div>
-            <p className="text-sm text-slate-600 group-hover:text-slate-800">
-              {preview(m.message)}
-            </p>
+            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+              <div className="flex min-w-0 items-baseline gap-2">
+                <span className="truncate text-sm font-semibold text-slate-900">{m.subject}</span>
+              </div>
+            </div>
+            <p className="text-sm text-slate-600 group-hover:text-slate-800">{preview(m.message)}</p>
           </Link>
         </li>
       ))}

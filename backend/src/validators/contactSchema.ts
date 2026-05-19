@@ -28,6 +28,12 @@ export const contactSchema = z.object({
     .email('E-mail inválido')
     .max(254, 'E-mail deve ter no máximo 254 caracteres')
     .regex(SINGLE_LINE, 'E-mail contém caracteres inválidos'),
+  subject: z
+    .string({ required_error: 'Assunto é obrigatório' })
+    .trim()
+    .min(2, 'Assunto deve ter ao menos 2 caracteres')
+    .max(200, 'Assunto deve ter no máximo 200 caracteres')
+    .regex(SINGLE_LINE, 'Assunto contém caracteres inválidos'),
   message: z
     .string({ required_error: 'Mensagem é obrigatória' })
     .trim()
