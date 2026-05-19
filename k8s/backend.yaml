@@ -14,8 +14,8 @@ data:
   NODE_ENV: "production"
   PORT: "3000"
   LOG_LEVEL: "info"
-  # Comma-separated list — adjust the domain to match your frontend host.
-  CORS_ORIGIN: "https://api.form.arcobatrox.com.br"
+  # Same-origin under Strategy A — frontend and API share app.form.* host.
+  CORS_ORIGIN: "https://app.form.arcobatrox.com.br,https://www.app.form.arcobatrox.com.br"
   DB_HOST: "receive-forms-postgres"
   DB_PORT: "5432"
   DB_NAME: "receive_forms"
