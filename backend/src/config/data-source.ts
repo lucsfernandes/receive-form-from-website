@@ -25,6 +25,7 @@ export const AppDataSource = new DataSource({
   database: env.db.database,
   synchronize: env.db.synchronize,
   logging: env.db.logging,
+  ssl: env.db.ssl,
   entities: [ContactMessage, User, RefreshToken, PasswordResetToken],
   migrations: [path.join(__dirname, '..', 'migrations', '*.{ts,js}')],
   migrationsTableName: 'typeorm_migrations',
